@@ -170,6 +170,7 @@ input[type=text]:focus{outline:3px solid rgba(233,180,76,.8);border-color:var(--
 .muted{opacity:.75;font-size:13px}
 .credit{text-align:center;font-size:12px;opacity:.7;margin:22px 0 8px;color:#F0D6A8}
 .credit a{color:var(--brass)}
+.credit .ver{display:block;margin-top:3px;font-size:11px;letter-spacing:1px;opacity:.6}
 .err{color:#FFB3A6}
 .hide{display:none!important}
 #dbgBtn{position:fixed;right:10px;bottom:10px;width:40px;height:40px;border-radius:12px;
@@ -302,7 +303,8 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:80}
     <button class="btn ghost small" id="bHome">Leave the room</button>
   </div>
 
-  <div class="credit">Developed by <a href="https://keekootech.in" target="_blank" rel="noopener">Kee Koo Tech</a></div>
+  <div class="credit">Developed by <a href="https://keekootech.in" target="_blank" rel="noopener">Kee Koo Tech</a>
+    <span class="ver" id="ver"></span></div>
 </div>
 
 <!-- host sheet -->
@@ -351,18 +353,21 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:80}
    ========================================================== */
 
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDuegnGvdNdn2Js-qROhWhqcUfxcTZpSYw",
-  authDomain: "housie-9b526.firebaseapp.com",
-  databaseURL: "https://housie-9b526-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "housie-9b526",
-  storageBucket: "housie-9b526.firebasestorage.app",
-  messagingSenderId: "556129846343",
-  appId: "1:556129846343:web:6dc1ab11f968876f561d62"
+  apiKey: "AIzaSyCqxEi_tGGO93itnQo2E_nS2C30GYohCtE",
+  authDomain: "filmy-keekoo.firebaseapp.com",
+  databaseURL: "https://filmy-keekoo-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "filmy-keekoo",
+  storageBucket: "filmy-keekoo.firebasestorage.app",
+  messagingSenderId: "937872513976",
+  appId: "1:937872513976:web:31337e8a42cc215ea98d4d"
 };
 
 /* Bump BANKV whenever the puzzle list below changes order or length.
    Players on an older file get told to refresh instead of seeing wrong answers. */
 const BANKV = 1;
+
+/* Bump this on every upload so you can tell from a phone which build is live. */
+const VERSION = "v0.1";
 
 const $=i=>document.getElementById(i);
 
@@ -385,7 +390,8 @@ document.querySelector('.credit').addEventListener('click',e=>{
 });
 window.onerror=(m,s,l)=>log('ERROR '+m+' @'+l,true);
 window.onunhandledrejection=e=>log('PROMISE '+((e.reason&&e.reason.message)||e.reason),true);
-log('booting');
+$('ver').textContent='Filmy '+VERSION;
+log('booting '+VERSION);
 
 /* ==========================================================
    1. THE PUZZLE BANK
