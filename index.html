@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <meta name="theme-color" content="#5C0F1B">
-<title>Filmy — Guess the movie from emojis</title>
+<title>Talkies — Guess the movie from emojis</title>
 <meta name="description" content="Ek phone, poora khandaan. Guess Bollywood movies from emoji clues. Free, no download.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,8 +53,9 @@ h1,h2,h3,.disp{font-family:Bungee,Impact,sans-serif;font-weight:400;letter-spaci
   animation:glow 2.4s steps(2,end) infinite;
 }
 @keyframes glow{0%,100%{opacity:1}50%{opacity:.55}}
-.mrow{display:flex;align-items:center;gap:10px}
-.brand{font-size:24px;color:var(--brass);text-shadow:0 2px 0 #6B4A0C,0 0 14px rgba(233,180,76,.45)}
+.mrow{display:flex;align-items:center;justify-content:center}
+.crow{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:9px}
+.brand{font-size:26px;text-align:center;color:var(--brass);text-shadow:0 2px 0 #6B4A0C,0 0 14px rgba(233,180,76,.45)}
 .brand small{font-family:Archivo;font-weight:800;font-size:10px;letter-spacing:2px;display:block;color:#E9C9A0;opacity:.8}
 .spacer{flex:1}
 .chip{background:rgba(0,0,0,.35);border:1.5px solid rgba(233,180,76,.5);border-radius:999px;
@@ -135,6 +136,7 @@ input[type=text]:focus{outline:3px solid rgba(233,180,76,.8);border-color:var(--
   border-radius:13px;padding:13px;font-weight:800;font-size:15.5px;text-align:left;cursor:pointer;
   box-shadow:0 4px 0 #A88F5C}
 .opt:active{transform:translateY(3px);box-shadow:0 1px 0 #A88F5C}
+.opt[disabled]{opacity:.42;text-decoration:line-through;box-shadow:none;transform:translateY(3px)}
 
 /* ---------- players / scores ---------- */
 .stubs{display:flex;flex-direction:column;gap:8px;margin-top:10px}
@@ -192,8 +194,9 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:80}
 <div class="marquee">
   <div class="bulbs"></div>
   <div class="mrow">
-    <div class="brand">FILMY<small>KEE KOO GAMES</small></div>
-    <div class="spacer"></div>
+    <div class="brand">TALKIES<small>KEE KOO GAMES</small></div>
+  </div>
+  <div class="crow hide" id="crow">
     <div class="chip big hide" id="chipCode">----</div>
     <div class="chip hide" id="chipRound">1/10</div>
     <button class="chip hide" id="chipMenu" style="border-style:solid">☰</button>
@@ -259,7 +262,7 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:80}
     <div class="timer" id="tbar"><i id="tfill"></i></div>
 
     <div id="guessWrap">
-      <div class="guessbox">
+      <div class="guessbox" id="guessbox">
         <input type="text" id="guessIn" maxlength="40" placeholder="Movie name…" autocomplete="off"
                autocapitalize="words" enterkeyhint="go">
         <button class="btn go" id="bGuess">GO</button>
@@ -321,6 +324,10 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:80}
     <div class="seg" id="segDiff">
       <button data-v="easy">Easy</button><button data-v="mix" class="on">Mixed</button><button data-v="tough">Tough</button>
     </div>
+    <label class="fl">How players answer</label>
+    <div class="seg" id="segMode">
+      <button data-v="opts" class="on">Options</button><button data-v="type">Type</button><button data-v="both">Both</button>
+    </div>
     <label class="fl">Seconds per movie</label>
     <div class="seg" id="segSecs">
       <button data-v="30">30</button><button data-v="45" class="on">45</button><button data-v="60">60</button>
@@ -348,7 +355,7 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:80}
 
 <script type="module">
 /* ==========================================================
-   FILMY — Kee Koo Games
+   TALKIES — Kee Koo Games
    One file. Vanilla JS. Firebase RTDB. Spark plan safe.
    ========================================================== */
 
@@ -367,7 +374,7 @@ const FIREBASE_CONFIG = {
 const BANKV = 1;
 
 /* Bump this on every upload so you can tell from a phone which build is live. */
-const VERSION = "v0.1";
+const VERSION = "v0.2";
 
 const $=i=>document.getElementById(i);
 
@@ -390,7 +397,7 @@ document.querySelector('.credit').addEventListener('click',e=>{
 });
 window.onerror=(m,s,l)=>log('ERROR '+m+' @'+l,true);
 window.onunhandledrejection=e=>log('PROMISE '+((e.reason&&e.reason.message)||e.reason),true);
-$('ver').textContent='Filmy '+VERSION;
+$('ver').textContent='Talkies '+VERSION;
 log('booting '+VERSION);
 
 /* ==========================================================
@@ -655,12 +662,12 @@ $('bHost').onclick=async()=>{
   const code=newCode();
   try{
     /* update(), not set() — rules are evaluated per field, a whole-object set is denied */
-    await fx.update(R('filmy/'+code),{
+    await fx.update(R('talkies/'+code),{
       host:me.id,created:fx.serverTimestamp(),bankv:BANKV,
-      status:'lobby',rounds:10,diff:'mix',secs:45,locked:false
+      status:'lobby',rounds:10,diff:'mix',secs:45,mode:'opts',locked:false
     });
-    await fx.set(R(`filmy/${code}/players/${me.id}`),{name:me.name,at:fx.serverTimestamp()});
-    await fx.set(R(`filmy/${code}/scores/${me.id}`),0);
+    await fx.set(R(`talkies/${code}/players/${me.id}`),{name:me.name,at:fx.serverTimestamp()});
+    await fx.set(R(`talkies/${code}/scores/${me.id}`),0);
     S.isHost=true;enterRoom(code);
   }catch(e){log('create failed: '+e.message,true);alert('Could not create the room. Check your internet and try again.')}
 };
@@ -669,12 +676,12 @@ $('bJoin').onclick=async()=>{
   const code=($('codeIn').value||'').toUpperCase().replace(/[^A-Z]/g,'');
   if(code.length!==4){$('codeIn').focus();return}
   try{
-    const snap=await fx.get(R('filmy/'+code));
+    const snap=await fx.get(R('talkies/'+code));
     if(!snap.exists()){alert('No game with that code. Check the letters and try again.');return}
     const v=snap.val();
     if(v.bankv!==BANKV){alert('Your page is an old version. Close this tab, reopen the link and join again.');return}
     if(v.locked&&!(v.players&&v.players[me.id])){alert('The host has locked this room.');return}
-    await fx.set(R(`filmy/${code}/players/${me.id}`),{name:me.name,at:fx.serverTimestamp()});
+    await fx.set(R(`talkies/${code}/players/${me.id}`),{name:me.name,at:fx.serverTimestamp()});
     S.isHost=(v.host===me.id);
     enterRoom(code);
   }catch(e){log('join failed: '+e.message,true);alert('Could not join. Check your internet and try again.')}
@@ -687,6 +694,7 @@ $('codeIn').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCa
 function enterRoom(code){
   S.code=code;
   $('chipCode').textContent=code;$('chipCode').classList.remove('hide');
+  $('crow').classList.remove('hide');
   $('lobCode').textContent=code;
   $('chipMenu').classList.toggle('hide',!S.isHost);
   $('bStart').classList.toggle('hide',!S.isHost);
@@ -694,7 +702,7 @@ function enterRoom(code){
   screen('scLobby');
   log('entered '+code+(S.isHost?' as host':''));
 
-  const base='filmy/'+code;
+  const base='talkies/'+code;
   S.subs.push(fx.onValue(R(base+'/players'),s=>{S.players=s.val()||{};renderPlayers()}));
   S.subs.push(fx.onValue(R(base+'/scores'),s=>{S.scores=s.val()||{};renderPlayers()}));
   S.subs.push(fx.onValue(R(base+'/host'),s=>{S.hostId=s.val();S.isHost=(S.hostId===me.id);
@@ -713,6 +721,7 @@ function enterRoom(code){
   S.subs.push(fx.onValue(R(base+'/rounds'),s=>{S.rounds=s.val()||10;paintChip()}));
   S.subs.push(fx.onValue(R(base+'/secs'),s=>{S.secs=s.val()||45}));
   S.subs.push(fx.onValue(R(base+'/diff'),s=>{S.diff=s.val()||'mix'}));
+  S.subs.push(fx.onValue(R(base+'/mode'),s=>{S.mode=s.val()||'opts'}));
 
   /* keep the host's screen awake — the host's phone drives the clock */
   if(S.isHost)keepAwake();
@@ -751,8 +760,8 @@ function renderScoreStubs(){
    ========================================================== */
 $('bStart').onclick=async()=>{
   if(Object.keys(S.players).length<1)return;
-  await fx.update(R('filmy/'+S.code),{status:'play'});
-  await fx.set(R(`filmy/${S.code}/scores`),Object.fromEntries(Object.keys(S.players).map(k=>[k,0])));
+  await fx.update(R('talkies/'+S.code),{status:'play'});
+  await fx.set(R(`talkies/${S.code}/scores`),Object.fromEntries(Object.keys(S.players).map(k=>[k,0])));
   buildDeck();
   startRound(1);
 };
@@ -773,7 +782,7 @@ async function startRound(n){
   if(!S.deck.length)buildDeck();
   const pid=S.deck[(n-1)%S.deck.length];
   const dur=(S.secs||45)*1000;
-  await fx.set(R(`filmy/${S.code}/round`),{n,pid,dur,phase:'guess',startAt:fx.serverTimestamp()});
+  await fx.set(R(`talkies/${S.code}/round`),{n,pid,dur,phase:'guess',startAt:fx.serverTimestamp()});
   log('round '+n+' pid '+pid);
   S.hostTimer=setTimeout(()=>scoreRound(n),dur+900);
 }
@@ -781,7 +790,7 @@ async function startRound(n){
 let ansSub=null;
 function watchAnswers(n){
   if(ansSub)ansSub();
-  ansSub=fx.onValue(R(`filmy/${S.code}/ans/${n}`),s=>{
+  ansSub=fx.onValue(R(`talkies/${S.code}/ans/${n}`),s=>{
     const a=s.val()||{};
     S.done=a;renderScoreStubs();
     if(S.isHost&&Object.keys(a).length>=Object.keys(S.players).length){
@@ -797,22 +806,24 @@ async function scoreRound(n){
   scoring=true;
   try{
     const p=BANK[S.round.pid];
-    const snap=await fx.get(R(`filmy/${S.code}/ans/${n}`));
+    const snap=await fx.get(R(`talkies/${S.code}/ans/${n}`));
     const a=snap.val()||{};
-    const rows=Object.entries(a).map(([id,v])=>({id,g:v.g||'',at:v.at||0,opt:!!v.opt}))
+    const rows=Object.entries(a).map(([id,v])=>({id,g:v.g||'',at:v.at||0,opt:!!v.opt,w:v.w||0}))
       .filter(r=>judge(r.g,p)==='ok')
       .sort((x,y)=>x.at-y.at);
     const res={},upd={};
     rows.forEach((r,i)=>{
       const frac=Math.max(0,Math.min(1,1-((r.at-S.round.startAt)/S.round.dur)));
       let pts=60+Math.round(40*frac)+(i===0?20:0);
-      if(r.opt)pts=Math.round(pts/2);
+      /* the options rescue only halves you when typing was actually available */
+      if(r.opt&&(S.mode||'opts')==='both')pts=Math.round(pts/2);
+      pts=Math.max(20,pts-15*r.w);
       res[r.id]={pts,rank:i+1};
       upd[`scores/${r.id}`]=(S.scores[r.id]||0)+pts;
     });
-    await fx.set(R(`filmy/${S.code}/res/${n}`),res);
-    if(Object.keys(upd).length)await fx.update(R('filmy/'+S.code),upd);
-    await fx.update(R(`filmy/${S.code}/round`),{phase:'reveal'});
+    await fx.set(R(`talkies/${S.code}/res/${n}`),res);
+    if(Object.keys(upd).length)await fx.update(R('talkies/'+S.code),upd);
+    await fx.update(R(`talkies/${S.code}/round`),{phase:'reveal'});
     log('scored round '+n+', '+rows.length+' correct');
   }catch(e){log('score failed: '+e.message,true)}
   scoring=false;
@@ -822,7 +833,7 @@ async function goNext(){
   if(!S.isHost)return;
   clearTimeout(S.nextTimer);
   const n=S.round.n+1;
-  if(n>(S.rounds||10)){await fx.update(R('filmy/'+S.code),{status:'over'})}
+  if(n>(S.rounds||10)){await fx.update(R('talkies/'+S.code),{status:'over'})}
   else startRound(n);
 }
 
@@ -854,8 +865,12 @@ function showGuess(){
   $('guessIn').value='';$('guessIn').disabled=false;
   $('guessWrap').classList.remove('hide');$('lockedWrap').classList.add('hide');
   $('opts').classList.add('hide');$('opts').innerHTML='';
-  $('bOpts').classList.remove('hide');
-  if(!store.get('kk_filmy_seen')){$('tour').classList.add('on');store.set('kk_filmy_seen','1')}
+  S.wrong=0;
+  const m=S.mode||'opts';
+  $('guessbox').classList.toggle('hide',m==='opts');
+  $('bOpts').classList.toggle('hide',m!=='both');
+  if(m==='opts')renderOpts();
+  if(!store.get('kk_talkies_seen')){$('tour').classList.add('on');store.set('kk_talkies_seen','1')}
   tick=setInterval(paintTimer,200);paintTimer();
 }
 function paintTimer(){
@@ -877,8 +892,8 @@ async function submit(text,viaOpt){
     S.answered=true;
     try{navigator.vibrate&&navigator.vibrate([18,50,18])}catch(e){}
     try{
-      await fx.set(R(`filmy/${S.code}/ans/${S.round.n}/${me.id}`),
-        {g:text.slice(0,40),at:fx.serverTimestamp(),opt:!!(viaOpt||S.usedOpts)});
+      await fx.set(R(`talkies/${S.code}/ans/${S.round.n}/${me.id}`),
+        {g:text.slice(0,40),at:fx.serverTimestamp(),opt:!!(viaOpt||S.usedOpts),w:S.wrong||0});
     }catch(e){log('answer write failed: '+e.message,true)}
     burst();
     lockOut('Correct! 🎉');
@@ -897,18 +912,22 @@ function lockOut(msg){
 }
 $('bGuess').onclick=()=>submit($('guessIn').value,false);
 $('guessIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submit($('guessIn').value,false)}});
-$('bOpts').onclick=()=>{
-  S.usedOpts=true;
-  $('bOpts').classList.add('hide');
-  const box=$('opts');box.classList.remove('hide');
-  box.innerHTML='';
+function renderOpts(){
+  const box=$('opts');box.classList.remove('hide');box.innerHTML='';
   optionsFor(S.round.pid).forEach(i=>{
     const b=document.createElement('button');
     b.className='opt';b.textContent=BANK[i][1];
-    b.onclick=()=>submit(BANK[i][1],true);
+    b.onclick=()=>{
+      if(S.answered||b.disabled)return;
+      if(i===S.round.pid){submit(BANK[i][1],true);return}
+      b.disabled=true;                       /* wrong taps cost points, not the round */
+      S.wrong=(S.wrong||0)+1;
+      $('feed').className='feed no';$('feed').textContent='Not that one. −15';
+    };
     box.appendChild(b);
   });
-};
+}
+$('bOpts').onclick=()=>{S.usedOpts=true;$('bOpts').classList.add('hide');renderOpts()};
 $('tourGo').onclick=()=>$('tour').classList.remove('on');
 
 /* ---------- reveal ---------- */
@@ -921,7 +940,7 @@ async function showReveal(){
   $('rHint').textContent=p[4];
   $('bNext').classList.toggle('hide',!S.isHost);
   let res={};
-  try{res=(await fx.get(R(`filmy/${S.code}/res/${S.round.n}`))).val()||{}}catch(e){}
+  try{res=(await fx.get(R(`talkies/${S.code}/res/${S.round.n}`))).val()||{}}catch(e){}
   const rows=Object.entries(res).sort((a,b)=>a[1].rank-b[1].rank);
   $('revList').innerHTML = rows.length
     ? rows.map(([id,v])=>`<div class="stub ${id===me.id?'me':''}"><div class="no">${v.rank}</div>
@@ -956,10 +975,10 @@ function showFinal(){
 }
 $('bAgain').onclick=async()=>{
   if(!S.isHost)return;
-  await fx.remove(R(`filmy/${S.code}/ans`)).catch(()=>{});
-  await fx.remove(R(`filmy/${S.code}/res`)).catch(()=>{});
-  await fx.set(R(`filmy/${S.code}/scores`),Object.fromEntries(Object.keys(S.players).map(k=>[k,0])));
-  await fx.update(R('filmy/'+S.code),{status:'play'});
+  await fx.remove(R(`talkies/${S.code}/ans`)).catch(()=>{});
+  await fx.remove(R(`talkies/${S.code}/res`)).catch(()=>{});
+  await fx.set(R(`talkies/${S.code}/scores`),Object.fromEntries(Object.keys(S.players).map(k=>[k,0])));
+  await fx.update(R('talkies/'+S.code),{status:'play'});
   buildDeck();startRound(1);
 };
 $('bHome').onclick=()=>location.reload();
@@ -973,7 +992,7 @@ function seg(id,path,cast){
   $(id).querySelectorAll('button').forEach(b=>b.onclick=async()=>{
     $(id).querySelectorAll('button').forEach(x=>x.classList.remove('on'));
     b.classList.add('on');
-    await fx.update(R('filmy/'+S.code),{[path]:cast(b.dataset.v)});
+    await fx.update(R('talkies/'+S.code),{[path]:cast(b.dataset.v)});
     if(path==='diff')buildDeck();
     log(path+' = '+b.dataset.v);
   });
@@ -981,12 +1000,13 @@ function seg(id,path,cast){
 seg('segRounds','rounds',Number);
 seg('segDiff','diff',String);
 seg('segSecs','secs',Number);
+seg('segMode','mode',String);
 $('bLock').onclick=async()=>{
-  await fx.update(R('filmy/'+S.code),{locked:true});
+  await fx.update(R('talkies/'+S.code),{locked:true});
   $('bLock').textContent='Room locked ✓ — no new players';
 };
 $('bShare').onclick=async()=>{
-  const txt=`Join my Filmy game! Code: ${S.code}\n${location.origin+location.pathname}`;
+  const txt=`Join my Talkies game! Code: ${S.code}\n${location.origin+location.pathname}`;
   try{ if(navigator.share){await navigator.share({text:txt})} else {await navigator.clipboard.writeText(txt);$('bShare').textContent='Invite copied ✓'} }
   catch(e){ $('bShare').textContent='Code: '+S.code }
 };
